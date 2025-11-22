@@ -159,12 +159,68 @@ public class BudgetTracker {
     }
 
   
+    //DELETE TRANSACTION
+    /**
+     * Delete a transaction by its displayed number. Shifts the array
+     * down to remove gaps, then updates balance and saves the new list of transactions.
+     */
     static void deleteTransaction() {
-       
+        if (count == 0) {
+            System.out.println("No transactions to delete!");
+            return;
+        }
+
+        displayTransactions();
+        System.out.print("Enter transaction number to delete: ");
+        try {
+            int num = sc.nextInt();
+            sc.nextLine();
+            if (num < 1 || num > count) {
+                System.out.println("Invalid number! Choose between 1 and " + count + ".");
+                return;
+            }
+    // Moves all following elements one position left to fill the removed entry.
+            for (int i = num - 1; i < count - 1; i++) {
+                transactions[i] = transactions[i + 1];
+            }
+            transactions[--count] = null;
+            updateBalance();
+            saveTransactions(); //Updates the saved data.
+            System.out.println("Transaction deleted successfully!");
+        } catch (InputMismatchException err) {
+            System.out.println("Invalid input! Enter a valid number.");
+            sc.nextLine();
+        }
     }
 
+
+    // UPDATE BALANCE
+    /**
+     * Recalculate the Balance entry based on current incomes and expenses.
+     * Removes any existing Balance entry before appending the updated one.
+     */
     static void updateBalance() {
-       
+        double totalIncome = 0, totalExpense = 0;
+
+        // Remove any existing Balance entry from the array
+        for (int i = 0; i < count; i++) {
+            if (transactions[i] instanceof Balance) {
+                for (int j = i; j < count - 1; j++) {
+                    transactions[j] = transactions[j + 1];
+                }
+                transactions[--count] = null;
+                i--; // re-check current index after shift
+            }
+        }
+
+        // Sum incomes and expenses
+        for (int i = 0; i < count; i++) {
+            if (transactions[i] instanceof Income) totalIncome += transactions[i].getAmount();
+            if (transactions[i] instanceof Expense) totalExpense += transactions[i].getAmount();
+        }
+
+        // Append a new Balance entry representing (income - expense)
+        transactions[count++] = new Balance(totalIncome - totalExpense);
     }
 
    
