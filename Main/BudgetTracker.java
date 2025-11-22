@@ -1,6 +1,12 @@
 package Main;
 
 import Classes.*;  // Importing all classes from the ALT_F4.Classes package
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;  // Importing the utility classes (like Scanner)
 
 public class BudgetTracker {
@@ -187,7 +193,7 @@ public class BudgetTracker {
             updateBalance();
             saveTransactions(); //Updates the saved data.
             System.out.println("Transaction deleted successfully!");
-        } catch (InputMismatchException err) {
+        } catch (InputMismatchException error) {
             System.out.println("Invalid input! Enter a valid number.");
             sc.nextLine();
         }
@@ -224,13 +230,67 @@ public class BudgetTracker {
     }
 
    
+    // SAVE TO FILE
+    /**
+     * Writes all current transactions to FILE_NAME using the format:
+     * Type|Amount|Description. This updates the file every time changes occur.
+     */
     static void saveTransactions() {
-  
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_NAME))) { 
+            for (int i = 0; i < count; i++) { // Loop through all transactions
+                String type; // Store the transaction type as a string
+
+                if (transactions[i] instanceof Income) type = "Income"; // Check if transaction is Income
+                else if (transactions[i] instanceof Expense) type = "Expense"; // Check if transaction is Expense
+                else type = "Balance"; // Otherwise, it's a Balance transaction
+
+                // Write the transaction in the format Type|Amount|Description
+                bw.write(type + "|" + transactions[i].getAmount() + "|" + transactions[i].getDescription());
+                bw.newLine(); // Move to the next line for the next transaction
+            }
+        } catch (IOException error) { // Handle file writing errors
+            System.out.println("Error saving transactions: " + error.getMessage()); // Print error message
+        }
     }
 
    
+    // LOAD FROM FILE
+    /**
+     * Load transactions from FILE_NAME. Expects lines in the format:
+     * Type|Amount|Description. After reading, it recalculates the balance.
+     */
     static void loadTransactions() {
-     
-    }
-}
+        File file = new File(FILE_NAME); // Represent the file where transactions are stored
+        if (!file.exists()) return; // If file doesn't exist, nothing to load
 
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) { // Open file for reading
+            String line; 
+            count = 0; // Reset transaction count before loading
+
+            while ((line = br.readLine()) != null) { // Read file line by line
+                String[] parts = line.split("\\|"); // Split line by '|' to get type, amount, description
+                if (parts.length < 2) continue; // Skip invalid lines
+
+                String type = parts[0]; // First part is transaction type
+                double amount = Double.parseDouble(parts[1]); // Second part is amount
+                String desc = parts.length > 2 ? parts[2] : ""; // Optional description
+
+                switch (type) {
+                    case "Income": 
+                        transactions[count++] = new Income(amount); // Create Income object
+                        break;
+                    case "Expense": 
+                        transactions[count++] = new Expense(amount, desc); // Create Expense object
+                        break;
+                    case "Balance": 
+                        break; // Ignore Balance, it will be recalculated
+                }
+            }
+        } catch (IOException | NumberFormatException error) { // Catch reading or parsing errors
+            System.out.println("Error loading transactions: " + error.getMessage()); // Print error message
+        }
+
+        updateBalance(); // Recompute balance after loading all transactions
+    }
+
+}
