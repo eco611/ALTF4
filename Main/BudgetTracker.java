@@ -1,6 +1,6 @@
 package Main;
 
-import Classes.*;  // Importing all classes from the ALT_F4.Classes package
+import Classes.*;  // Importing all classes from the Classes package
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -29,7 +29,7 @@ public class BudgetTracker {
             System.out.println("5. Exit");
             System.out.print("Choose an option: ");
 
-            try {
+            try { // Handle invalid input
                 int choice = sc.nextInt();  // Read user choice
                 sc.nextLine();  // Consume the newline character
 
@@ -46,20 +46,24 @@ public class BudgetTracker {
                     default:
                         System.out.println("Invalid option! Choose 1-5.");
                 }
-            } catch (InputMismatchException error) {
+            } catch (InputMismatchException error) { // Handle non-integer inputs
                 System.out.println("Invalid input! Enter a number only.");
                 sc.nextLine();  // Consume the invalid input
             }
         }
     }
 
-    // Method to add income
-    static void addIncome() {
+    // Add income 
+    /*
+     * Add an income. The user enters a positive amount.
+     * The income is recorded and the balance is recalculated and saved.
+     */
+    static void addIncome() { 
         System.out.print("Enter income amount: PHP");
-        try {
-            double amt = sc.nextDouble();
-            sc.nextLine();
-            if (amt <= 0) {
+        try { // Handle invalid input
+            double amt = sc.nextDouble(); // Read income amount
+            sc.nextLine(); // Consume the newline character
+            if (amt <= 0) { // Validate positive amount
                 System.out.println("Amount must be positive!");
                 return;
             }
@@ -67,43 +71,43 @@ public class BudgetTracker {
             updateBalance();  // Update the balance after adding income
             saveTransactions();  // Save transactions in real-time
             System.out.println("Income added successfully!");
-        } catch (InputMismatchException error) {
+        } catch (InputMismatchException error) { // Catch non-numeric inputs
             System.out.println("Invalid input! Enter a valid number.");
             sc.nextLine();  // Consume the invalid input
         }
     }
 
-    // *ADD EXPENSE
+    // ADD EXPENSE
     /*
       Add an expense. The user chooses a category
      (Bills/Needs/Wants) and enters a positive amount. The expense
      is recorded and the balance is recalculated and saved.
      */
     static void addExpense() {
-        if (count == 0) {
+        if (count == 0) { // Ensure there is at least one income before adding expenses
             System.out.println("Please add income first!");
             return;
         }
+        
+        String desc = "";// To hold the expense description
+        int typeChoice = 0;// To hold the user's choice of expense type
 
-        String desc = "";
-        int typeChoice = 0;
-
-        while (true) {
+        while (true) { // Loop until a valid type is chosen
             System.out.println("Select expense type:");
             System.out.println("1. Bills");
             System.out.println("2. Needs");
             System.out.println("3. Wants");
             System.out.print("Choose an option (1-3): ");
-
-            try {
+ 
+            try { // Handle invalid input
                 typeChoice = sc.nextInt();
-                sc.nextLine();
+                sc.nextLine(); // Consume the newline character
 
                 if (typeChoice >= 1 && typeChoice <= 3) break;
                 else System.out.println("Invalid choice! Please choose 1-3.");
-            } catch (InputMismatchException error) {
+            } catch (InputMismatchException error) { // Catch non-integer inputs
                 System.out.println("Invalid input! Enter a number 1-3.");
-                sc.nextLine();
+                sc.nextLine(); // Consume the invalid input
             }
         }
     // Map numeric choice to a short textual description
@@ -113,75 +117,75 @@ public class BudgetTracker {
             case 3: desc = "Wants"; break;
         }
 
-        double amt = 0;
-        while (true) {
+        double amt = 0; // To hold the expense amount
+        while (true) { // Loop until a valid positive amount is entered
             System.out.print("Enter expense amount: ₱");
-            try {
-                amt = sc.nextDouble();
-                sc.nextLine();
-                if (amt > 0) break;
-                else System.out.println("Amount must be positive!");
-            } catch (InputMismatchException error) {
+            try { // Handle invalid input
+                amt = sc.nextDouble(); // Read expense amount
+                sc.nextLine(); // Consume the newline character
+                if (amt > 0) break; // Valid positive amount
+                else System.out.println("Amount must be positive!"); // Prompt again
+            } catch (InputMismatchException error) { // Catch non-numeric inputs
                 System.out.println("Invalid input! Enter a valid number.");
-                sc.nextLine();
+                sc.nextLine(); // Consume the invalid input
             }
         }
         // Add the new expense and refresh the computed balance
         transactions[count++] = new Expense(amt, desc);
-        updateBalance();
-        saveTransactions(); // REAL-TIME SAVE
+        updateBalance(); // Update the balance after adding expense
+        saveTransactions(); // Save transactions in real-time
         System.out.println("Expense added successfully!");
     }
 
    
-    //   DISPLAY TRANSACTIONS
+    // DISPLAY TRANSACTIONS
     /**
      * Print all recorded transactions (except the internal Balance entry)
      * followed by the current Balance entry.
      */
 
     static void displayTransactions() {
-        if (count == 0) {
+        if (count == 0) { // Check if there are any transactions to display
             System.out.println("No transactions yet!");
             return;
         }
 
         System.out.println("\n--- Transactions & Balance ---");
-        int num = 1;
-    // Print non-balance transactions in order
-        for (int i = 0; i < count; i++) {
-            if (transactions[i] instanceof Balance) continue;
-            System.out.print(num + ". ");
-            transactions[i].displayInfo();
-            num++;
+        int num = 1; // To number the displayed transactions
+        // Print non-balance transactions in order
+        for (int i = 0; i < count; i++) { 
+            if (transactions[i] instanceof Balance) continue; // Skip Balance entries so that they are printed last
+            System.out.print(num + ". "); // Print the transaction number
+            transactions[i].displayInfo(); // Display transaction details
+            num++; // Increment the transaction number
         }
-    // Print the balance at the end
+        // Print the balance at the end
         for (int i = 0; i < count; i++) {
             if (transactions[i] instanceof Balance) {
-                transactions[i].displayInfo();
+                transactions[i].displayInfo(); // Display balance details
                 break;
             }
         }
     }
 
   
-    //DELETE TRANSACTION
+    // DELETE TRANSACTION
     /**
      * Delete a transaction by its displayed number. Shifts the array
      * down to remove gaps, then updates balance and saves the new list of transactions.
      */
     static void deleteTransaction() {
-        if (count == 0) {
-            System.out.println("No transactions to delete!");
+        if (count == 0) { // Checks if there are any transactions to delete
+            System.out.println("No transactions to delete!"); 
             return;
         }
 
-        displayTransactions();
-        System.out.print("Enter transaction number to delete: ");
-        try {
-            int num = sc.nextInt();
-            sc.nextLine();
-            if (num < 1 || num > count) {
+        displayTransactions(); // Show current transactions for reference
+        System.out.print("Enter transaction number to delete: "); // Choose transaction to delete
+        try { // Handle invalid input
+            int num = sc.nextInt(); // Read the transaction number to delete
+            sc.nextLine(); // Consume the newline character
+            if (num < 1 || num > count) { // Validate the chosen number
                 System.out.println("Invalid number! Choose between 1 and " + count + ".");
                 return;
             }
@@ -189,13 +193,13 @@ public class BudgetTracker {
             for (int i = num - 1; i < count - 1; i++) {
                 transactions[i] = transactions[i + 1];
             }
-            transactions[--count] = null;
-            updateBalance();
+            transactions[--count] = null; // Decrease count and nullify last element
+            updateBalance(); // Recalculate balance after deletion
             saveTransactions(); //Updates the saved data.
             System.out.println("Transaction deleted successfully!");
-        } catch (InputMismatchException error) {
+        } catch (InputMismatchException error) { // Catch non-integer inputs
             System.out.println("Invalid input! Enter a valid number.");
-            sc.nextLine();
+            sc.nextLine(); // Consume the invalid input
         }
     }
 
@@ -206,15 +210,15 @@ public class BudgetTracker {
      * Removes any existing Balance entry before appending the updated one.
      */
     static void updateBalance() {
-        double totalIncome = 0, totalExpense = 0;
+        double totalIncome = 0, totalExpense = 0; // Initialize total income and expense
 
         // Remove any existing Balance entry from the array
         for (int i = 0; i < count; i++) {
-            if (transactions[i] instanceof Balance) {
+            if (transactions[i] instanceof Balance) { // Check if current transaction is Balance
                 for (int j = i; j < count - 1; j++) {
-                    transactions[j] = transactions[j + 1];
+                    transactions[j] = transactions[j + 1]; // Shift all elements left to remove the Balance
                 }
-                transactions[--count] = null;
+                transactions[--count] = null; // Decrease count and nullify last element
                 i--; // re-check current index after shift
             }
         }
@@ -286,7 +290,7 @@ public class BudgetTracker {
                         break; // Ignore Balance, it will be recalculated
                 }
             }
-        } catch (IOException | NumberFormatException error) { // Catch reading or parsing errors
+        } catch (IOException | NumberFormatException error) { // Catch  errors
             System.out.println("Error loading transactions: " + error.getMessage()); // Print error message
         }
 
