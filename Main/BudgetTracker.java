@@ -59,6 +59,10 @@ public class BudgetTracker {
      * The income is recorded and the balance is recalculated and saved.
      */
     static void addIncome() { 
+        if (count >= transactions.length) { // Check for array overflow
+            System.out.println("Cannot add more transactions! Maximum reached.");
+            return;
+        }
         System.out.print("Enter income amount: PHP");
         try { // Handle invalid input
             double amt = sc.nextDouble(); // Read income amount
@@ -83,59 +87,87 @@ public class BudgetTracker {
      (Bills/Needs/Wants) and enters a positive amount. The expense
      is recorded and the balance is recalculated and saved.
      */
-    static void addExpense() {
-        if (count == 0) { // Ensure there is at least one income before adding expenses
-            System.out.println("Please add income first!");
+    // To get current balance
+    static double getCurrentBalance() {
+        if (count == 0) return 0;
+        Transaction t = transactions[count - 1]; // Last transaction should be Balance
+        return (t instanceof Balance) ? t.getAmount() : 0;
+    }
+
+    static void addExpense() { 
+        if (count >= transactions.length) { // Check for array overflow
+            System.out.println("Cannot add more transactions! Maximum reached.");
             return;
         }
-        
-        String desc = "";// To hold the expense description
-        int typeChoice = 0;// To hold the user's choice of expense type
-
-        while (true) { // Loop until a valid type is chosen
-            System.out.println("Select expense type:");
-            System.out.println("1. Bills");
-            System.out.println("2. Needs");
-            System.out.println("3. Wants");
-            System.out.print("Choose an option (1-3): ");
- 
-            try { // Handle invalid input
-                typeChoice = sc.nextInt();
-                sc.nextLine(); // Consume the newline character
-
-                if (typeChoice >= 1 && typeChoice <= 3) break;
-                else System.out.println("Invalid choice! Please choose 1-3.");
-            } catch (InputMismatchException error) { // Catch non-integer inputs
-                System.out.println("Invalid input! Enter a number 1-3.");
-                sc.nextLine(); // Consume the invalid input
-            }
-        }
-    // Map numeric choice to a short textual description
-        switch (typeChoice) {
-            case 1: desc = "Bills"; break;
-            case 2: desc = "Needs"; break;
-            case 3: desc = "Wants"; break;
-        }
-
-        double amt = 0; // To hold the expense amount
-        while (true) { // Loop until a valid positive amount is entered
-            System.out.print("Enter expense amount: ₱");
-            try { // Handle invalid input
-                amt = sc.nextDouble(); // Read expense amount
-                sc.nextLine(); // Consume the newline character
-                if (amt > 0) break; // Valid positive amount
-                else System.out.println("Amount must be positive!"); // Prompt again
-            } catch (InputMismatchException error) { // Catch non-numeric inputs
-                System.out.println("Invalid input! Enter a valid number.");
-                sc.nextLine(); // Consume the invalid input
-            }
-        }
-        // Add the new expense and refresh the computed balance
-        transactions[count++] = new Expense(amt, desc);
-        updateBalance(); // Update the balance after adding expense
-        saveTransactions(); // Save transactions in real-time
-        System.out.println("Expense added successfully!");
+         if (getCurrentBalance() <= 0) { // Ensure there is enough balance
+        System.out.println("Cannot add expense! Current balance is zero or negative.");
+        return;
     }
+
+    String desc = "";  // Description of the expense
+    int typeChoice = 0;
+
+    // Select expense type
+    while (true) {
+        System.out.println("Select expense type:");
+        System.out.println("1. Bills");
+        System.out.println("2. Needs");
+        System.out.println("3. Wants");
+        System.out.print("Choose an option (1-3): ");
+
+        try { // Handle invalid input
+            typeChoice = sc.nextInt(); // Read type choice
+            sc.nextLine(); // Consume the newline character
+            if (typeChoice >= 1 && typeChoice <= 3) break; // Valid choice
+            else System.out.println("Invalid choice! Please choose 1-3.");
+        } catch (InputMismatchException error) { // Catch non-integer inputs
+            System.out.println("Invalid input! Enter a number 1-3.");
+            sc.nextLine(); // Consume the invalid input
+        }
+    }
+
+    // Map choice to description
+    switch (typeChoice) {
+        case 1: desc = "Bills"; break;
+        case 2: desc = "Needs"; break;
+        case 3: desc = "Wants"; break;
+    }
+
+    double amt = 0; // Expense amount
+    double currentBalance = getCurrentBalance(); // Get current balance 
+
+    // Input expense amount
+    while (true) {
+        System.out.print("Enter expense amount: PHP");
+        try { // Handle invalid input
+            amt = sc.nextDouble(); // Read expense amount
+            sc.nextLine(); // Consume the newline character
+
+             // Validate positive amount
+
+            if (amt <= 0) {
+                System.out.println("Amount must be positive!");
+                continue;
+            }
+
+            if (amt > currentBalance) { // Check against current balance
+                System.out.println("Insufficient balance! Current balance: PHP" + String.format("%.2f", currentBalance));
+                continue;
+            }
+            break;
+        } catch (InputMismatchException error) { // Catch non-numeric inputs
+            System.out.println("Invalid input! Enter a valid number.");
+            sc.nextLine(); // Consume the invalid input
+        }
+    }
+
+    // Add expense and update balance
+    transactions[count++] = new Expense(amt, desc);
+    updateBalance(); // Recalculate balance
+    saveTransactions(); // Save transactions in real-time
+    System.out.println("Expense added successfully!");
+    }
+
 
    
     // DISPLAY TRANSACTIONS
@@ -151,19 +183,19 @@ public class BudgetTracker {
         }
 
         System.out.println("\n--- Transactions & Balance ---");
-        int num = 1; // To number the displayed transactions
-        // Print non-balance transactions in order
-        for (int i = 0; i < count; i++) { 
-            if (transactions[i] instanceof Balance) continue; // Skip Balance entries so that they are printed last
-            System.out.print(num + ". "); // Print the transaction number
-            transactions[i].displayInfo(); // Display transaction details
-            num++; // Increment the transaction number
-        }
-        // Print the balance at the end
+        // Map displayed numbers to actual indexes
+        int displayNum = 1;
         for (int i = 0; i < count; i++) {
-            if (transactions[i] instanceof Balance) {
-                transactions[i].displayInfo(); // Display balance details
-                break;
+            if (transactions[i] instanceof Balance) continue; // Skip balance
+            System.out.print(displayNum + ". "); // Display number
+            transactions[i].displayInfo(); // Show transaction info
+            displayNum++; // Increment display number
+        }
+         // Display balance at the end
+        for (int i = 0; i < count; i++) {
+        if (transactions[i] instanceof Balance) {
+            transactions[i].displayInfo();
+            break;
             }
         }
     }
@@ -175,33 +207,67 @@ public class BudgetTracker {
      * down to remove gaps, then updates balance and saves the new list of transactions.
      */
     static void deleteTransaction() {
-        if (count == 0) { // Checks if there are any transactions to delete
-            System.out.println("No transactions to delete!"); 
+    if (count == 0) { // Check if there are any transactions to delete
+        System.out.println("No transactions to delete!"); 
+        return;
+    }
+
+    // Display transactions with numbers
+    System.out.println("\n--- Transactions ---");
+    int displayNum = 1; // Numbering for user
+    int[] map = new int[count]; // Maps display number to actual array index
+    int idx = 0;
+
+    for (int i = 0; i < count; i++) {
+        if (!(transactions[i] instanceof Balance)) {
+            System.out.print(displayNum + ". ");
+            transactions[i].displayInfo();
+            map[idx++] = i; // store actual array index
+            displayNum++;
+        }
+    }
+    System.out.print("Enter transaction number to delete: "); 
+    try { // Handle invalid input
+        int num = sc.nextInt(); // Read transaction number to delete
+        sc.nextLine();  // Consume the newline character
+
+         // Validate transaction number
+        if (num < 1 || num > displayNum) {
+            System.out.println("Invalid number! Choose between 1 and " + displayNum + ".");
             return;
         }
 
-        displayTransactions(); // Show current transactions for reference
-        System.out.print("Enter transaction number to delete: "); // Choose transaction to delete
-        try { // Handle invalid input
-            int num = sc.nextInt(); // Read the transaction number to delete
-            sc.nextLine(); // Consume the newline character
-            if (num < 1 || num > count) { // Validate the chosen number
-                System.out.println("Invalid number! Choose between 1 and " + count + ".");
-                return;
-            }
-    // Moves all following elements one position left to fill the removed entry.
-            for (int i = num - 1; i < count - 1; i++) {
-                transactions[i] = transactions[i + 1];
-            }
-            transactions[--count] = null; // Decrease count and nullify last element
-            updateBalance(); // Recalculate balance after deletion
-            saveTransactions(); //Updates the saved data.
-            System.out.println("Transaction deleted successfully!");
-        } catch (InputMismatchException error) { // Catch non-integer inputs
-            System.out.println("Invalid input! Enter a valid number.");
-            sc.nextLine(); // Consume the invalid input
+        int realIndex = map[num - 1]; // get actual array index
+
+        // Check if deleting this transaction would make balance negative
+        double tempTotalIncome = 0, tempTotalExpense = 0;
+        for (int i = 0; i < count; i++) {
+            if (i == realIndex) continue; 
+            if (transactions[i] instanceof Income) tempTotalIncome += transactions[i].getAmount();
+            if (transactions[i] instanceof Expense) tempTotalExpense += transactions[i].getAmount();
         }
+
+        if (tempTotalIncome - tempTotalExpense < 0) { // Check for negative balance
+            System.out.println("Cannot delete this transaction! Deleting it would make balance negative.");
+            return;
+        }
+
+        // Shift array to delete the chosen transaction
+        for (int i = realIndex; i < count - 1; i++) {
+            transactions[i] = transactions[i + 1];
+        }
+        transactions[--count] = null; // Decrease count and nullify last element
+
+        updateBalance(); // Recalculate balance
+        saveTransactions(); // Save changes
+        System.out.println("Transaction deleted successfully!");
+
+    } catch (InputMismatchException error) { // Handle non-integer inputs
+        System.out.println("Invalid input! Enter a valid number.");
+        sc.nextLine(); // Consume the invalid input
     }
+}
+
 
 
     // UPDATE BALANCE
@@ -264,37 +330,63 @@ public class BudgetTracker {
      * Type|Amount|Description. After reading, it recalculates the balance.
      */
     static void loadTransactions() {
-        File file = new File(FILE_NAME); // Represent the file where transactions are stored
-        if (!file.exists()) return; // If file doesn't exist, nothing to load
+    File file = new File(FILE_NAME); // Reference to the file
+    if (!file.exists()) return; // If file doesn't exist, nothing to load
 
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) { // Open file for reading
-            String line; 
-            count = 0; // Reset transaction count before loading
+    // Clear the array before loading
+    for (int i = 0; i < transactions.length; i++) {
+        transactions[i] = null;
+    }
+    count = 0; // Reset count
 
-            while ((line = br.readLine()) != null) { // Read file line by line
-                String[] parts = line.split("\\|"); // Split line by '|' to get type, amount, description
-                if (parts.length < 2) continue; // Skip invalid lines
-
-                String type = parts[0]; // First part is transaction type
-                double amount = Double.parseDouble(parts[1]); // Second part is amount
-                String desc = parts.length > 2 ? parts[2] : ""; // Optional description
-
-                switch (type) {
-                    case "Income": 
-                        transactions[count++] = new Income(amount); // Create Income object
-                        break;
-                    case "Expense": 
-                        transactions[count++] = new Expense(amount, desc); // Create Expense object
-                        break;
-                    case "Balance": 
-                        break; // Ignore Balance, it will be recalculated
-                }
+     // Read the file line by line
+    try (BufferedReader br = new BufferedReader(new FileReader(file))) { // BufferedReader for efficient reading
+        String line; // Variable to hold each line read
+        while ((line = br.readLine()) != null) { // Read each line until end of file
+            String[] parts = line.split("\\|"); // Split the line into parts based on the '|' delimiter
+            if (parts.length < 2) { // Validate line format
+                System.out.println("Skipping invalid line: " + line);
+                continue;
             }
-        } catch (IOException | NumberFormatException error) { // Catch  errors
-            System.out.println("Error loading transactions: " + error.getMessage()); // Print error message
-        }
 
-        updateBalance(); // Recompute balance after loading all transactions
+            String type = parts[0]; // Transaction type
+            double amount = 0; // Transaction amount
+             // Parse the amount and handle potential format issues
+            try { // Handle invalid amount format
+                amount = Double.parseDouble(parts[1]); // Convert amount string to double
+            } catch (NumberFormatException error) { // Catch parsing errors 
+                System.out.println("Invalid amount in file, skipping line: " + line); // Print error message
+                continue;
+            }
+
+            String desc; // Transaction description
+             // Description is only for Expense; Income and Balance have empty descriptions
+                if (parts.length > 2) {
+                    desc = parts[2];
+                } else {
+                    desc = "";
+                }
+
+            switch (type) { // Create appropriate transaction based on type
+                case "Income":
+                    transactions[count++] = new Income(amount);
+                    break;
+                case "Expense":
+                    transactions[count++] = new Expense(amount, desc);
+                    break;
+                case "Balance":
+                    break; // Ignore balance 
+            }
+        }
+    } catch (IOException error) { // Handle file reading errors
+        System.out.println("Error loading transactions: " + error.getMessage());
     }
 
+    updateBalance(); // Recalculate balance after loading
+
+    // Warn if loaded expenses exceed income
+    if (getCurrentBalance() < 0) {
+        System.out.println("Warning: Loaded expenses exceed total income! Balance is negative.");
+    }
+    }
 }
