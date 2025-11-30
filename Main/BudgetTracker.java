@@ -91,8 +91,13 @@ public class BudgetTracker {
     static double getCurrentBalance() {
         if (count == 0) return 0;
         Transaction t = transactions[count - 1]; // Last transaction should be Balance
-        return (t instanceof Balance) ? t.getAmount() : 0;
+        if (t instanceof Balance) {
+            return t.getAmount();
+        } else {
+            return 0;
+        }
     }
+
 
     static void addExpense() { 
         if (count >= transactions.length) { // Check for array overflow
